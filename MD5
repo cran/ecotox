@@ -1,0 +1,15 @@
+83ca247c70559849d87a17eaf9bcebbd *DESCRIPTION
+9c25e1cdc3b5122842a6a70fab49a522 *LICENSE
+b0f4c765fa8dd2656e17762f53fde369 *NAMESPACE
+272ccc760d957ee7e6e7a1be0dfdc407 *R/LCx.R
+2d3540ad462881740b57cd5938a3dd2e *R/LTx.R
+7f23c469d40a0f470a7b7905f18cb3dd *R/lampreytime.R
+b5050aae7dc6045614c934b6af2b0d55 *R/lampreytox.R
+22ffab366db41ed2061b67850692d357 *README.md
+d179b28d03c44240ca3294f4aabd3a1f *data/lampreytime.rda
+c710e2a649796dfad1b1fb3f736ec9bd *data/lampreytox.rda
+6104e82de7b2f95ba02cb02459f44385 *inst/CITATION
+a8b071a084043b1bce326ecf4bb50b44 *man/LC.Rd
+8c31360fea371d744c5a8ae71bbbe385 *man/LT.Rd
+54b145ccd6807a87a5ae65eab96d5758 *man/lampreytime.Rd
+95641217a508641f819644716622eee5 *man/lampreytox.Rd
