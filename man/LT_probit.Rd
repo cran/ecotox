@@ -4,24 +4,26 @@
 \alias{LT_probit}
 \title{Lethal Time Probit}
 \usage{
-LT_probit(formula, data, p = seq(1, 99, 1),
-weights = NULL, het_sig = NULL, conf_level = NULL)
+LT_probit(formula, data, p = seq(1, 99, 1), weights,
+subset = NULL, het_sig = NULL, conf_level = NULL)
 }
 \arguments{
-\item{formula}{an object of class formula or one that can be coerced to that class: a symbolic description of the model to be fitted.}
+\item{formula}{an object of class \code{formula} or one that can be coerced to that class: a symbolic description of the model to be fitted.}
 
-\item{data}{an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which LT is called.}
+\item{data}{an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which LT_probit is called.}
 
 \item{p}{Lethal time (LT) values for given p, example will return a LT50 value if p equals 50. If more than one LT value desired specify by creating a vector.}
 
-\item{weights}{vector of 'prior weights' to be used in the fitting process. Should be a numeric vector, if set to NULL weights will not be used.}
+\item{weights}{vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.}
 
-\item{het_sig}{signficance level from person's goodness-of-fit test that is used to decide if a hetrogentiy factor is used. NULL is set to 0.15.}
+\item{subset}{allows for the data to be subset if desired. Default set to NULL.}
+
+\item{het_sig}{significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. NULL is set to 0.15.}
 
 \item{conf_level}{Adjust confidence level as necessary or NULL set at 0.95.}
 }
 \value{
-Returns a data frame with predicted LT for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LT (LCL_dis & UCL_dis; important for creating a plot), Pearson's goodness-of-fit test, slope, intercept, slope and intercept p values and standard error, and LT variance.
+Returns a data frame with predicted LT for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LT (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test, slope, intercept, slope and intercept p values and standard error, and LT variance.
 }
 \description{
 Calculates lethal time (LT) and
@@ -31,9 +33,11 @@ according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
 \examples{
 head(lampreytime)
 
-results <- LT_probit((dead/total) ~ log10(hour), p = c(50, 99),
-weights = lampreytime[c(1:11), ]$total,
-data = lampreytime[c(1:11), ])
+results <- LT_probit((response / total) ~ log10(hour),
+p = c(50, 99),
+weights = total,
+data = lampreytime,
+subset = c(month == "May"))
 
 #view calculated LT50 and LT99 for seasonal
 #toxicity of a piscicide, 3-trifluoromethyl-4-nitrophenol, to lamprey in 2011

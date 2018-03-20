@@ -4,24 +4,26 @@
 \alias{LC_probit}
 \title{Lethal Concentration Probit}
 \usage{
-LC_probit(formula, data, p = seq(1, 99, 1),
- weights = NULL, het_sig = NULL, conf_level = NULL)
+LC_probit(formula, data, p = seq(1, 99, 1), weights,
+          subset = NULL,  het_sig = NULL, conf_level = NULL)
 }
 \arguments{
-\item{formula}{an object of class 'formula' or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specification are given under Details.}
+\item{formula}{an object of class \code{formula} or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specification are given under Details.}
 
-\item{data}{an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which LC is called.}
+\item{data}{an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which LC_probit is called.}
 
-\item{p}{Lethal Concentration (LC) values for given p, example will return a LC50 value if p equals 50. If more than one LC value wanted specify by creating a vector.}
+\item{p}{Lethal Concentration (LC) value for given p, example will return a LC50 value if p equals 50. If more than one LC value wanted specify by creating a vector.}
 
-\item{weights}{vector of 'prior weights' to be used in the fitting process. Should be a numeric vector, if set to NULL weights will not be used.}
+\item{weights}{vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.}
 
-\item{het_sig}{signficance level from person's goodness-of-fit test that is used to decide if a hetrogentiy factor is used. NULL is set to 0.15.}
+\item{subset}{allows for the data to be subset if desired. Default set to NULL.}
+
+\item{het_sig}{significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. NULL is set to 0.15.}
 
 \item{conf_level}{Adjust confidence level as necessary or NULL set at 0.95.}
 }
 \value{
-Returns a data frame with predicted LC for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LC (LCL_dis & UCL_dis; important for creating a plot), Pearson's goodness-of-fit test, slope, intercept, slope and intercept p values and standard error, and LC variance.
+Returns a data frame with predicted LC for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LC (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test, slope, intercept, slope and intercept p values and standard error, and LC variance.
 }
 \description{
 Calculates lethal concentration (LC) and
@@ -38,9 +40,10 @@ head(lampreytox)
 
 #calculate LC50 and LC99
 
-m <- LC_probit((dead / total) ~ log10(dose), p = c(50, 99),
-         weights = lampreytox[c(1:19), ]$total,
-         data = lampreytox[c(1:19), ])
+m <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
+         weights = total,
+         data = lampreytox,
+         subset = c(month == "May"))
 
 #view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
 #to lamprey in 2011
@@ -52,7 +55,7 @@ m
 library(ggplot2)
 
 p1 <- ggplot(data = lampreytox[c(1:19), ],
-             aes(x = log10(dose), y = (dead / total))) +
+             aes(x = log10(dose), y = (response / total))) +
   geom_point() +
   geom_smooth(method = "glm",
             method.args = list(family = binomial(link = "probit")),
@@ -62,17 +65,20 @@ p1
 
 #calculate LC50s and LC99s for multiple toxicity tests, June, August, and September
 
-j <- LC_probit((dead / total) ~ log10(dose), p = c(50, 99),
-        weights = lampreytox[c(20:38), ]$total,
-        data = lampreytox[c(20:38), ])
+j <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
+        weights = total,
+        data = lampreytox,
+        subset = c(month == "June"))
 
-a <- LC_probit((dead / total) ~ log10(dose), p = c(50, 99),
-        weights = lampreytox[c(39:51), ]$total,
-        data = lampreytox[c(39:51), ])
+a <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
+        weights = total,
+        data = lampreytox,
+        subset = c(month == "August"))
 
-s <- LC_probit((dead / total) ~ log10(dose), p = c(50, 99),
-        weights = lampreytox[c(52:64), ]$total,
-        data = lampreytox[c(52:64), ])
+s <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
+        weights = total,
+        data = lampreytox,
+        subset = c(month == "September"))
 
 #group results together in a dataframe to plot with 'ggplot2'
 
