@@ -5,15 +5,16 @@
 #' its fiducial confidence limits (CL) using a probit analysis
 #' according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
 #' @usage LC_probit(formula, data, p = seq(1, 99, 1), weights,
-#'           subset = NULL,  het_sig = NULL, conf_level = NULL)
+#'           subset = NULL, log_x = TRUE, het_sig = NULL, conf_level = NULL)
 #' @param formula an object of class `formula` or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specification are given under Details.
-#' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which LC_probit is called.
+#' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which `LC_probit` is called.
 #' @param p Lethal Concentration (LC) value for given p, example will return a LC50 value if p equals 50. If more than one LC value wanted specify by creating a vector.
 #' @param weights vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.
-#' @param subset allows for the data to be subset if desired. Default set to NULL.
-#' @param het_sig significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. NULL is set to 0.15.
-#' @param conf_level Adjust confidence level as necessary or NULL set at 0.95.
-#' @return Returns a data frame with predicted LC for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LC (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test, slope, intercept, slope and intercept p values and standard error, and LC variance.
+#' @param subset allows for the data to be subset if desired. Default set to `NULL`.
+#' @param log_x default is `TRUE` and will calculate results using the antilog10 given that the x varaible has been `log10` tranformed. If `FALSE` results will not be back transformed.
+#' @param het_sig significance level from person's chi square goodness-of-fit test (pgof) that is used to decide if a heterogeneity factor is used. `NULL` is set to 0.15.
+#' @param conf_level adjust confidence level as necessary or `NULL` set at 0.95.
+#' @return Returns a data frame with predicted LC for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LC (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LC variance.
 #' @references
 #'
 #' Finney, D.J., 1971. Probit Analysis, Cambridge University Press, Cambridge, England, ISBN: 052108041X
@@ -45,7 +46,7 @@
 #'
 #' library(ggplot2)
 #'
-#' p1 <- ggplot(data = lampreytox[c(1:19), ],
+#' p1 <- ggplot(data = subset(lampreytox, month %in% c("May")),
 #'              aes(x = log10(dose), y = (response / total))) +
 #'   geom_point() +
 #'   geom_smooth(method = "glm",
@@ -97,7 +98,8 @@
 
 # Function  LC_probit ----
 LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
-                      subset = NULL, het_sig = NULL, conf_level = NULL) {
+                      subset = NULL, log_x = TRUE, het_sig = NULL,
+                      conf_level = NULL) {
 
   model <- do.call("glm", list(formula = formula,
                                family = binomial(link = "probit"),
@@ -105,10 +107,10 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
                                weights = substitute(weights),
                                subset = substitute(subset)))
 
-  # Calculate heterogeneity correction to confidence intervals
+  # Calculate heterogeneity to correct confidence intervals
   # according to Finney, 1971, (p.72, eq. 4.27; also called "h")
   # Heterogeneity correction factor is used if
-  # pearson's goodness of fit test returns a sigficance
+  # pearson's goodness of fit test (pgof) returns a sigficance
   # value less than 0.150 (source: 'SPSS 24')
 
   chi_square <- residuals.glm(model, type = "pearson") ^ 2 %>%
@@ -116,13 +118,13 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 
   df <- df.residual(model)
 
-  PGOF <- pchisq(chi_square, df, lower.tail = FALSE)
+  pgof <- pchisq(chi_square, df, lower.tail = FALSE)
 
   if (is.null(het_sig)) {
     het_sig <- 0.150
   }
 
-  if (PGOF < het_sig) {
+  if (pgof < het_sig) {
     het <- chi_square / df
   }
 
@@ -161,12 +163,12 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
   n <- df + 2
 
   # variances have to be adjusted for heterogenity
-  # if PGOF returns a signfacnce value less than 0.15
+  # if pgof returns a signfacnce value less than 0.150
   # (Finney 1971 p 72; 'SPSS 24')
 
   # covariance matrix
 
-  if (PGOF < het_sig) {
+  if (pgof < het_sig) {
     vcova <- vcov(model) * het
   }
 
@@ -188,7 +190,7 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 
   # Adjust distibution depending on heterogeneity (Finney, 1971,  p72,
   # t distubtion used instead of normal distubtion  with appropriate df
-  # if PGOF returns a signfacnce value less than 0.15
+  # if pgof returns a signfacnce value less than 0.150
   # (Finney 1971 p 72; 'SPSS 24')
 
   if (is.null(conf_level)) {
@@ -199,7 +201,7 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 
   t_2 <- (t / 2)
 
-  if (PGOF < het_sig) {
+  if (pgof < het_sig) {
     tdis <- -qt(t_2, df = df)
   }
 
@@ -230,8 +232,8 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 
   cl_part_3 <- (tdis / ((1 - g) * abs(b1))) * sqrt(cl_part_2)
 
-  # Calculate the fiducial limit LFL=lower fiducial limit,
-  # UFL = upper fiducial limit (Finney, 1971, p. 78-79. eq. 4.35)
+  # Calculate the fiducial limit LCL=lower fiducial limit,
+  # UCL = upper fiducial limit (Finney, 1971, p. 78-79. eq. 4.35)
 
   LCL <- (m + (cl_part_1 - cl_part_3))
   UCL <- (m + (cl_part_1 + cl_part_3))
@@ -241,21 +243,33 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
   var_m <- (1 / (m ^ 2)) * (var_b0 + 2 * m * cov_b0_b1 +
                               m ^ 2 * var_b1)
 
+  if (log_x == TRUE) {
+    dose <- 10 ^ m
+    LCL <- 10 ^ LCL
+    UCL <- 10 ^ UCL
+    LCL_dis <- dose - LCL
+    UCL_dis <- UCL - dose
+  }
 
-
-
+  if (log_x == FALSE) {
+    dose <- m
+    LCL <- LCL
+    UCL <- UCL
+    LCL_dis <-  dose - LCL
+    UCL_dis <- UCL - dose
+  }
 
   # Make a data frame from the data at all the different values
   table <- data.frame(p = p,
                       n = n,
-                      dose = 10 ^ m,
-                      LCL = 10 ^ LCL,
-                      UCL = 10 ^ UCL,
-                      LCL_dis = 10 ^ m - 10 ^ LCL,
-                      UCL_dis = 10 ^ UCL - 10 ^ m,
+                      dose = dose,
+                      LCL = LCL,
+                      UCL = UCL,
+                      LCL_dis = LCL_dis,
+                      UCL_dis = UCL_dis,
                       chi_square = chi_square,
                       df = df,
-                      PGOF_sig = PGOF,
+                      pgof_sig = pgof,
                       h = het,
                       slope = b1,
                       slope_se = slope_se,
@@ -276,15 +290,16 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 #' its fiducial confidence limits (CL) using a logit analysis
 #' according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
 #' @usage LC_logit(formula, data, p = seq(1, 99, 1), weights,
-#'          subset = NULL, het_sig = NULL, conf_level = NULL)
+#'          subset = NULL, log_x = TRUE, het_sig = NULL, conf_level = NULL)
 #' @param formula an object of class `formula` or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specification are given under Details.
-#' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which LC_logit is called.
+#' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which `LC_logit` is called.
 #' @param p Lethal Concentration (LC) values for given p, example will return a LC50 value if p equals 50. If more than one LC value wanted specify by creating a vector.
 #' @param weights vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.
-#' @param subset allows for the data to be subset if desired. Default set to NULL.
-#' @param het_sig significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. NULL is set to 0.15.
-#' @param conf_level Adjust confidence level as necessary or NULL set at 0.95.
-#' @return Returns a data frame with predicted LC for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LC (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test, slope, intercept, slope and intercept p values and standard error, and LC variance.
+#' @param log_x default is `TRUE` and will calculate results using the antilog10 given that the x varaible has been `log10` tranformed. If `FALSE` results will not be back transformed.
+#' @param subset allows for the data to be subset if desired. Default set to `NULL`.
+#' @param het_sig significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. `NULL` is set to 0.15.
+#' @param conf_level adjust confidence level as necessary or `NULL` set at 0.95.
+#' @return Returns a data frame with predicted LC for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LC (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LC variance.
 #' @references
 #'
 #' Finney, D.J., 1971. Probit Analysis, Cambridge University Press, Cambridge, England, ISBN: 052108041X
@@ -366,7 +381,8 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 
 # Function  LC_logit ----
 LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
-                     subset = NULL, het_sig = NULL, conf_level = NULL) {
+                     subset = NULL, log_x = TRUE,
+                     het_sig = NULL, conf_level = NULL) {
 
   model <- do.call("glm", list(formula = formula,
                                family = binomial(link = "logit"),
@@ -377,7 +393,7 @@ LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
   # Calculate heterogeneity correction to confidence intervals
   # according to Finney, 1971, (p.72, eq. 4.27; also called "h")
   # Heterogeneity correction factor is used if
-  # pearson's goodness of fit test returns a sigficance
+  # pearson's goodness of fit test (pgof) returns a sigficance
   # value less than 0.150 (source: 'SPSS 24')
 
   chi_square <- residuals.glm(model, type = "pearson") ^ 2 %>%
@@ -385,13 +401,13 @@ LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
 
   df <- df.residual(model)
 
-  PGOF <- pchisq(chi_square, df, lower.tail = FALSE)
+  pgof <- pchisq(chi_square, df, lower.tail = FALSE)
 
   if (is.null(het_sig)) {
     het_sig <- 0.150
   }
 
-  if (PGOF < het_sig) {
+  if (pgof < het_sig) {
     het <- chi_square / df
   }
   else {
@@ -428,11 +444,11 @@ LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
   n <- df + 2
 
   # variances have to be adjusted for heterogenity
-  # if PGOF returns a signfacnce value less than 0.15
+  # if pgof returns a signfacnce value less than 0.15
   # (Finney 1971 p 72; 'SPSS 24')
 
   # covariance matrix
-  if (PGOF < het_sig) {
+  if (pgof < het_sig) {
     vcova <- vcov(model) * het
   }
 
@@ -454,7 +470,7 @@ LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
 
   # Adjust distibution depending on heterogeneity (Finney, 1971,  p72,
   # t distubtion used instead of normal distubtion  with appropriate df
-  # if PGOF returns a signfacnce value less than 0.15
+  # if pgof returns a signfacnce value less than 0.15
   # (Finney 1971 p 72; 'SPSS 24')
 
   if (is.null(conf_level)) {
@@ -465,7 +481,7 @@ LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
 
   t_2 <- (t / 2)
 
-  if (PGOF < het_sig) {
+  if (pgof < het_sig) {
     tdis <- -qt(t_2, df = df)
   }
 
@@ -505,22 +521,39 @@ LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
 
   var_m <- (1 / (m ^ 2)) * (var_b0 + 2 * m * cov_b0_b1 + var_b1 * m ^ 2)
 
+  if (log_x == TRUE) {
+    dose <- 10 ^ m
+    LCL <- 10 ^ LCL
+    UCL <- 10 ^ UCL
+    LCL_dis <- dose - LCL
+    UCL_dis <- UCL - dose
+  }
+
+  if (log_x == FALSE) {
+    dose <- m
+    LCL <- LCL
+    UCL <- UCL
+    LCL_dis <-  dose - LCL
+    UCL_dis <- UCL - dose
+  }
+
+
   # Make a data frame from the data at all the different values
   table <- data.frame(p = p,
                       n = n,
-                      dose = 10 ^ m,
-                      LCL = 10 ^ LCL,
-                      UCL = 10 ^ UCL,
-                      LCL_dis = 10 ^ m - 10 ^ LCL,
-                      UCL_dis = 10 ^ UCL - 10 ^ m,
+                      dose = dose,
+                      LCL = LCL,
+                      UCL = UCL,
+                      LCL_dis = LCL_dis,
+                      UCL_dis = UCL_dis,
                       chi_square = chi_square,
                       df = df,
-                      PGOF_sig = PGOF,
+                      pgof_sig = pgof,
                       h = het,
                       slope = b1,
                       slope_se = slope_se,
                       slope_sig = slope_sig,
-                      ntercept = b0,
+                      intercept = b0,
                       intercept_se = intercept_se,
                       intercept_sig = intercept_sig,
                       z = z_value,

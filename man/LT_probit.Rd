@@ -5,25 +5,27 @@
 \title{Lethal Time Probit}
 \usage{
 LT_probit(formula, data, p = seq(1, 99, 1), weights,
-subset = NULL, het_sig = NULL, conf_level = NULL)
+subset = NULL, log_x = TRUE, het_sig = NULL, conf_level = NULL)
 }
 \arguments{
 \item{formula}{an object of class \code{formula} or one that can be coerced to that class: a symbolic description of the model to be fitted.}
 
-\item{data}{an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which LT_probit is called.}
+\item{data}{an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which \code{LT_probit} is called.}
 
 \item{p}{Lethal time (LT) values for given p, example will return a LT50 value if p equals 50. If more than one LT value desired specify by creating a vector.}
 
 \item{weights}{vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.}
 
-\item{subset}{allows for the data to be subset if desired. Default set to NULL.}
+\item{subset}{allows for the data to be subset if desired. Default set to \code{NULL}.}
 
-\item{het_sig}{significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. NULL is set to 0.15.}
+\item{log_x}{Default is \code{TRUE} and will calculate results using the antilog10 given that the x varaible has been \code{log10} tranformed. If \code{FALSE} results will not be back transformed.}
 
-\item{conf_level}{Adjust confidence level as necessary or NULL set at 0.95.}
+\item{het_sig}{significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. \code{NULL} is set to 0.15.}
+
+\item{conf_level}{Adjust confidence level as necessary or \code{NULL} set at 0.95.}
 }
 \value{
-Returns a data frame with predicted LT for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LT (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test, slope, intercept, slope and intercept p values and standard error, and LT variance.
+Returns a data frame with predicted LT for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LT (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LT variance.
 }
 \description{
 Calculates lethal time (LT) and
