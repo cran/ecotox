@@ -49,7 +49,25 @@ m <- LC_probit((response / total) ~ log10(dose),
 ## 3-trifluoromethyl-4-nitrophenol (TFM) to lamprey in 2011
 
 m
-```
+
+## several new features include 1) being able to change the output length 
+## 2) you can indicate whether the x variable has been log10 transformed or 
+## not if it has the output will take that into consideration
+
+m_2 <- LC_probit((response / total) ~ dose,
+                  p = c(50, 99),
+                  weights = total,
+                  data = lampreytox,
+                  subset = c(month == "May"), 
+                  log_x = FALSE, 
+                  long_output = FALSE)
+                  
+## view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
+## 3-trifluoromethyl-4-nitrophenol (TFM) to lamprey in 2011.
+
+m_2
+
+``` 
 
 ## References 
 
@@ -66,4 +84,4 @@ m
   Hlina, B.L., Birceanu, O., Robinson, C.S., Thackeray, N., Tessier, L.R., Muhametsafina, A., Bragg, L.M., Servos, M.R., Wilkie, M.P. *In Preparation*. Changes in the sensitivity of piscicide in an invasive species. Environmental Science & Technology.
 
 
-* version 1.3.2 written by Benjamin L. Hlina, Carleton University, Ottawa, Ontario, Canada. Written in ['Programming Language R'](https://www.r-project.org/), version 3.5.0 (2018-04-23) -- "Joy in Playing". Run on a PC with Intel&reg; Core&trade; I7 - Q820 CPU, 1.73 GHz processor, 8.0 GB RAM, and Microsoft Windows 7 Professional operating system, 2009 Service Pack 1. Source code is available at ['ecotox'](https://github.com/benjaminhlina/ecotox) or by contacting Benjamin L. Hlina at benjamin.hlina@gmail.com
+* version 1.3.2 written by Benjamin L. Hlina, Carleton University, Ottawa, Ontario, Canada. Written in ['Programming Language R'](https://www.r-project.org/), 3.5.1 (2018-07-02) -- "Feather Spray". Run on a PC with Intel&reg; Core&trade; I7 - Q820 CPU, 1.73 GHz processor, 8.0 GB RAM, and Microsoft Windows 7 Professional operating system, 2009 Service Pack 1. Source code is available at ['ecotox'](https://github.com/benjaminhlina/ecotox) or by contacting Benjamin L. Hlina at benjamin.hlina@gmail.com

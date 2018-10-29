@@ -5,7 +5,8 @@
 \title{Lethal Concentration Logit}
 \usage{
 LC_logit(formula, data, p = seq(1, 99, 1), weights,
-         subset = NULL, log_x = TRUE, het_sig = NULL, conf_level = NULL)
+         subset = NULL, log_x = TRUE, het_sig = NULL,
+         conf_level = NULL, long_output = TRUE)
 }
 \arguments{
 \item{formula}{an object of class \code{formula} or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specification are given under Details.}
@@ -16,16 +17,18 @@ LC_logit(formula, data, p = seq(1, 99, 1), weights,
 
 \item{weights}{vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.}
 
-\item{subset}{allows for the data to be subset if desired. Default set to \code{NULL}.}
+\item{subset}{allows for the data to be subseted if desired. Default set to \code{NULL}.}
 
-\item{log_x}{default is \code{TRUE} and will calculate results using the antilog10 given that the x varaible has been \code{log10} tranformed. If \code{FALSE} results will not be back transformed.}
+\item{log_x}{default is \code{TRUE} and will calculate results using the antilog10 given that the x variable has been \code{log10} tranformed. If \code{FALSE} results will not be back transformed.}
 
 \item{het_sig}{significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. \code{NULL} is set to 0.15.}
 
 \item{conf_level}{adjust confidence level as necessary or \code{NULL} set at 0.95.}
+
+\item{long_output}{default is \code{TRUE} which will return a tibble with all 19 variabless. If \code{FALSE} the tibble returned will consist of the p level, n, the predicted LC for given p level, lower and upper confidence limits and their distances.}
 }
 \value{
-Returns a data frame with predicted LC for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LC (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LC variance.
+Returns a tibble with predicted LC for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LC (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LC variance.
 }
 \description{
 Calculates lethal concentration (LC) and
