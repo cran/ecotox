@@ -1,18 +1,20 @@
-# Descirption of LC_probit ----
+# Description of LC_probit ----
 
 #' Lethal Concentration Probit
 #' @description Calculates lethal concentration (LC) and
 #' its fiducial confidence limits (CL) using a probit analysis
 #' according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
-#' @usage LC_probit(formula, data, p = seq(1, 99, 1), weights,
-#'           subset = NULL, log_x = TRUE, het_sig = NULL, conf_level = NULL,
+#' @usage LC_probit(formula, data, p = NULL, weights,
+#'           subset = NULL, log_base = NULL, log_x = TRUE,
+#'           het_sig = NULL, conf_level = NULL,
 #'           long_output = TRUE)
 #' @param formula an object of class `formula` or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specification are given under Details.
 #' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which `LC_probit` is called.
-#' @param p Lethal Concentration (LC) value for given p, example will return a LC50 value if p equals 50. If more than one LC value wanted specify by creating a vector.
+#' @param p Lethal Concentration (LC) values for given p, example will return a LC50 value if p equals 50. If more than one LC value wanted specify by creating a vector. LC values can be calculated down to the 1e-16 of a percentage (e.g. LC99.99). However, the tibble produced can round to nearest whole number.
 #' @param weights vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.
 #' @param subset allows for the data to be subseted if desired. Default set to `NULL`.
-#' @param log_x default is `TRUE` and will calculate results using the antilog10 given that the x variable has been `log10` tranformed. If `FALSE` results will not be back transformed.
+#' @param log_base default is `10` and will be used to  calculate results using the anti of `log10()` given that the x variable has been `log10` tranformed. If `FALSE` results will not be back transformed.
+#' @param log_x default is `TRUE` and will calculate results using the antilog of determined by `log_base` given that the x variable has been `log()` tranformed. If `FALSE` results will not be back transformed.
 #' @param het_sig significance level from person's chi square goodness-of-fit test (pgof) that is used to decide if a heterogeneity factor is used. `NULL` is set to 0.15.
 #' @param conf_level adjust confidence level as necessary or `NULL` set at 0.95.
 #' @param long_output default is `TRUE` which will return a tibble with all 19 variabless. If `FALSE` the tibble returned will consist of the p level, n, the predicted LC for given p level, lower and upper confidence limits and their distances.
@@ -25,30 +27,32 @@
 #'
 #' Robertson, J.L., Savin, N.E., Russell, R.M. and Preisler, H.K., 2007. Bioassays with arthropods. CRC press. ISBN: 9780849323317
 
-#' @examples head(lampreytox)
+#' @examples head(lamprey_tox)
 #'
 #' # within the dataframe used, control dose, unless produced a value
 #' # during experimentation, are removed from the dataframe,
 #' # as glm cannot handle values of infinite. Other statistical programs
 #' # make note of the control dose but do not include within analysis
 #'
-#' #calculate LC50 and LC99
+#' # calculate LC50 and LC99
 #'
 #' m <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
 #'          weights = total,
-#'          data = lampreytox,
+#'          data = lamprey_tox,
 #'          subset = c(month == "May"))
 #'
-#' #view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
-#' #to lamprey in 2011
+#' # view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
+#' # to lamprey in 2011
 #'
 #' m
 #'
-#' #dose-response curve can be plotted using 'ggplot2'
+#' # dose-response curve can be plotted using 'ggplot2'
 #'
 #' library(ggplot2)
 #'
-#' p1 <- ggplot(data = subset(lampreytox, month %in% c("May")),
+#' lc_may <- subset(lamprey_tox, month %in% c("May"))
+#'
+#' p1 <- ggplot(data = lc_may,
 #'              aes(x = log10(dose), y = (response / total))) +
 #'   geom_point() +
 #'   geom_smooth(method = "glm",
@@ -57,33 +61,30 @@
 #'
 #' p1
 #'
-#' #calculate LC50s and LC99s for multiple toxicity tests, June, August, and September
+#' # calculate LC50s and LC99s for multiple toxicity tests, June, August, and September
 #'
 #' j <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lampreytox,
+#'         data = lamprey_tox,
 #'         subset = c(month == "June"))
 #'
 #' a <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lampreytox,
+#'         data = lamprey_tox,
 #'         subset = c(month == "August"))
 #'
 #' s <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lampreytox,
+#'         data = lamprey_tox,
 #'         subset = c(month == "September"))
 #'
-#' #group results together in a dataframe to plot with 'ggplot2'
+#' # group results together in a dataframe to plot with 'ggplot2'
 #'
 #' results <- rbind(m[, c(1, 3:8, 11)], j[,c(1, 3:8, 11)],
 #'                  a[, c(1, 3:8, 11)], s[, c(1, 3:8, 11)])
-#'
-#' results$month <- with(results, factor(c("May", "May", "June", "June",
-#'                                         "August", "August", "September",
-#'                                         "September"),
-#'                                         levels = c("May", "June",
-#'                                         "August", "September")))
+#' results$month <- factor(c(rep("May", 2), rep("June", 2),
+#'                           rep("August", 2), rep("September", 2)),
+#'                         levels = c("May", "June", "August", "September"))
 #'
 #' p2 <- ggplot(data = results, aes(x = month, y = dose,
 #'                              group = factor(p), fill = factor(p))) +
@@ -99,8 +100,11 @@
 #' @export
 
 # Function  LC_probit ----
-LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
-                      subset = NULL, log_x = TRUE, het_sig = NULL,
+LC_probit <- function(formula, data, p = NULL,
+                      weights,
+                      subset = NULL, log_base = NULL,
+                      log_x = TRUE,
+                      het_sig = NULL,
                       conf_level = NULL, long_output = TRUE) {
 
   model <- do.call("glm", list(formula = formula,
@@ -108,6 +112,18 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
                                data = data,
                                weights = substitute(weights),
                                subset = substitute(subset)))
+
+  # error message for missing weights argument in function call
+  if(missing(weights)) {
+    stop("Model needs the total of test organsim per dose to weight the model properly",
+         call. = FALSE)
+  }
+
+  # make p a null object and create warning message if p isn't supplied
+  if (is.null(p)) {
+    p <- seq(1, 99, 1)
+    warning("`p`argument has to be supplied otherwise LC values for 1-99 will be displayed", call. = FALSE)
+  }
 
   # Calculate heterogeneity to correct confidence intervals
   # according to Finney, 1971, (p.72, eq. 4.27; also called "h")
@@ -244,10 +260,22 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
   var_m <- (1 / (m ^ 2)) * (var_b0 + 2 * m * cov_b0_b1 +
                               m ^ 2 * var_b1)
 
+  # if(is.null(log_base)) {
+  #   ex <- 10
+  #
+  # }
+
+
+
+
   if (log_x == TRUE) {
-    dose <- 10 ^ m
-    LCL <- 10 ^ LCL
-    UCL <- 10 ^ UCL
+
+    if(is.null(log_base)) {
+      log_base <- 10
+      }
+    dose <- log_base ^ m
+    LCL <- log_base ^ LCL
+    UCL <- log_base ^ UCL
     LCL_dis <- dose - LCL
     UCL_dis <- UCL - dose
   }
@@ -295,19 +323,21 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 
 }
 
-# Descirption of LC_logit ----
+# Description of LC_logit ----
 #' Lethal Concentration Logit
 #' @description Calculates lethal concentration (LC) and
 #' its fiducial confidence limits (CL) using a logit analysis
 #' according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
-#' @usage LC_logit(formula, data, p = seq(1, 99, 1), weights,
-#'          subset = NULL, log_x = TRUE, het_sig = NULL,
+#' @usage LC_logit(formula, data, p = NULL, weights,
+#'          subset = NULL, log_base = NULL,
+#'          log_x = TRUE, het_sig = NULL,
 #'          conf_level = NULL, long_output = TRUE)
 #' @param formula an object of class `formula` or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specification are given under Details.
 #' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which `LC_logit` is called.
-#' @param p Lethal Concentration (LC) values for given p, example will return a LC50 value if p equals 50. If more than one LC value wanted specify by creating a vector.
+#' @param p Lethal Concentration (LC) values for given p, example will return a LC50 value if p equals 50. If more than one LC value wanted specify by creating a vector. LC values can be calculated down to the 1e-16 of a percentage (e.g. LC99.99). However, the tibble produced can round to nearest whole number.
 #' @param weights vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.
-#' @param log_x default is `TRUE` and will calculate results using the antilog10 given that the x variable has been `log10` tranformed. If `FALSE` results will not be back transformed.
+#' @param log_base default is `10` and will be used to  calculate results using the anti of `log10()` given that the x variable has been `log10` tranformed. If `FALSE` results will not be back transformed.
+#' @param log_x default is `TRUE` and will calculate results using the antilog of determined by `log_base` given that the x variable has been `log()` tranformed. If `FALSE` results will not be back transformed.
 #' @param subset allows for the data to be subseted if desired. Default set to `NULL`.
 #' @param het_sig significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. `NULL` is set to 0.15.
 #' @param conf_level adjust confidence level as necessary or `NULL` set at 0.95.
@@ -321,7 +351,7 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 #'
 #' Robertson, J.L., Savin, N.E., Russell, R.M. and Preisler, H.K., 2007. Bioassays with arthropods. CRC press. ISBN: 9780849323317
 
-#' @examples head(lampreytox)
+#' @examples head(lamprey_tox)
 #'
 #' # within the dataframe used, control dose, unless produced a value
 #' # during experimentation, are removed from the dataframe,
@@ -329,14 +359,14 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 #' # make note of the control dose but do not include within analysis
 #'
 #'
-#' #calculate LC50 and LC99 for May
+#' # calculate LC50 and LC99 for May
 #'
 #' m <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
 #'          weights = total,
-#'          data = lampreytox,
+#'          data = lamprey_tox,
 #'          subset = c(month == "May"))
 #'
-#' #view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
+#' # view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
 #' #to lamprey in 2011
 #'
 #' m
@@ -345,7 +375,9 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 #'
 #' library(ggplot2)
 #'
-#' p1 <- ggplot(data = lampreytox[c(1:19), ],
+#' lc_may <- subset(lamprey_tox, month %in% c("May"))
+#'
+#' p1 <- ggplot(data = lc_may,
 #'              aes(x = log10(dose), y = (response / total))) +
 #'   geom_point() +
 #'   geom_smooth(method = "glm",
@@ -354,33 +386,31 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 #'
 #' p1
 #'
-#' #calculate LC50s and LC99s for multiple toxicity tests, June, August, and September
+#' # calculate LC50s and LC99s for multiple toxicity tests, June, August, and September
 #'
 #' j <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lampreytox,
+#'         data = lamprey_tox,
 #'         subset = c(month == "June"))
 #'
 #' a <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lampreytox,
+#'         data = lamprey_tox,
 #'         subset = c(month == "August"))
 #'
 #' s <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lampreytox,
+#'         data = lamprey_tox,
 #'         subset = c(month == "September"))
 #'
-#' #group results together in a dataframe to plot with 'ggplot2'
+#' # group results together in a dataframe to plot with 'ggplot2'
 #'
 #' results <- rbind(m[, c(1, 3:8, 11)], j[,c(1, 3:8, 11)],
 #'                  a[, c(1, 3:8, 11)], s[, c(1, 3:8, 11)])
+#' results$month <- factor(c(rep("May", 2), rep("June", 2),
+#'                           rep("August", 2), rep("September", 2)),
+#'                         levels = c("May", "June", "August", "September"))
 #'
-#' results$month <- with(results, factor(c("May", "May", "June", "June",
-#'                                         "August", "August", "September",
-#'                                         "September"),
-#'                                         levels = c("May", "June",
-#'                                         "August", "September")))
 #'
 #' p2 <- ggplot(data = results, aes(x = month, y = dose,
 #'                              group = factor(p), fill = factor(p))) +
@@ -393,8 +423,9 @@ LC_probit <- function(formula, data, p = seq(1, 99, 1), weights,
 #' @export
 
 # Function  LC_logit ----
-LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
-                     subset = NULL, log_x = TRUE,
+LC_logit <- function(formula, data, p = NULL, weights,
+                     subset = NULL, log_base = NULL,
+                     log_x = TRUE,
                      het_sig = NULL, conf_level = NULL,
                      long_output = TRUE) {
 
@@ -404,6 +435,18 @@ LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
                                weights = substitute(weights),
                                subset = substitute(subset)))
 
+  # error message for missing weights argument in function call
+  if(missing(weights)) {
+    stop("Model needs the total of test organsim per dose to weight the model properly",
+         call. = FALSE)
+  }
+
+
+  # make p a null object and create warning message if p isn't supplied
+    if (is.null(p)) {
+      p <- seq(1, 99, 1)
+      warning(call. = FALSE, "`p`argument has to be supplied otherwise LC values for 1-99 will be displayed")
+    }
   # Calculate heterogeneity correction to confidence intervals
   # according to Finney, 1971, (p.72, eq. 4.27; also called "h")
   # Heterogeneity correction factor is used if
@@ -534,10 +577,18 @@ LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
 
   var_m <- (1 / (m ^ 2)) * (var_b0 + 2 * m * cov_b0_b1 + var_b1 * m ^ 2)
 
+
+
   if (log_x == TRUE) {
-    dose <- 10 ^ m
-    LCL <- 10 ^ LCL
-    UCL <- 10 ^ UCL
+
+    if(is.null(log_base)) {
+      log_base <- 10
+    }
+
+
+    dose <- log_base ^ m
+    LCL <- log_base ^ LCL
+    UCL <- log_base ^ UCL
     LCL_dis <- dose - LCL
     UCL_dis <- UCL - dose
   }
@@ -586,3 +637,4 @@ LC_logit <- function(formula, data, p = seq(1, 99, 1), weights,
   return(table)
 
 }
+

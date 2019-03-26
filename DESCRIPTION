@@ -1,7 +1,7 @@
 Package: ecotox
 Type: Package
 Title: Analysis of Ecotoxicology
-Version: 1.3.3
+Version: 1.4.0
 Authors@R: person("Benjamin L", "Hlina", email = "benjamin.hlina@gmail.com",
   role = c("aut", "cre"))
 Description: A simple approach to using a probit or logit analysis to calculate
@@ -24,10 +24,10 @@ Suggests: covr, dplyr, Hmisc, readr, testthat, tidyr, xlsx
 License: GPL-3 | file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 6.1.0.9000
+RoxygenNote: 6.1.1.9000
 NeedsCompilation: no
-Packaged: 2018-10-29 22:51:23 UTC; Ben Hlina
+Packaged: 2019-03-26 16:47:49 UTC; Ben Hlina
 Author: Benjamin L Hlina [aut, cre]
 Maintainer: Benjamin L Hlina <benjamin.hlina@gmail.com>
 Repository: CRAN
-Date/Publication: 2018-10-29 23:10:31 UTC
+Date/Publication: 2019-03-26 17:10:03 UTC

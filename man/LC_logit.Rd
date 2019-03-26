@@ -4,8 +4,9 @@
 \alias{LC_logit}
 \title{Lethal Concentration Logit}
 \usage{
-LC_logit(formula, data, p = seq(1, 99, 1), weights,
-         subset = NULL, log_x = TRUE, het_sig = NULL,
+LC_logit(formula, data, p = NULL, weights,
+         subset = NULL, log_base = NULL,
+         log_x = TRUE, het_sig = NULL,
          conf_level = NULL, long_output = TRUE)
 }
 \arguments{
@@ -13,13 +14,15 @@ LC_logit(formula, data, p = seq(1, 99, 1), weights,
 
 \item{data}{an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which \code{LC_logit} is called.}
 
-\item{p}{Lethal Concentration (LC) values for given p, example will return a LC50 value if p equals 50. If more than one LC value wanted specify by creating a vector.}
+\item{p}{Lethal Concentration (LC) values for given p, example will return a LC50 value if p equals 50. If more than one LC value wanted specify by creating a vector. LC values can be calculated down to the 1e-16 of a percentage (e.g. LC99.99). However, the tibble produced can round to nearest whole number.}
 
 \item{weights}{vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.}
 
 \item{subset}{allows for the data to be subseted if desired. Default set to \code{NULL}.}
 
-\item{log_x}{default is \code{TRUE} and will calculate results using the antilog10 given that the x variable has been \code{log10} tranformed. If \code{FALSE} results will not be back transformed.}
+\item{log_base}{default is \code{10} and will be used to  calculate results using the anti of \code{log10()} given that the x variable has been \code{log10} tranformed. If \code{FALSE} results will not be back transformed.}
+
+\item{log_x}{default is \code{TRUE} and will calculate results using the antilog of determined by \code{log_base} given that the x variable has been \code{log()} tranformed. If \code{FALSE} results will not be back transformed.}
 
 \item{het_sig}{significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. \code{NULL} is set to 0.15.}
 
@@ -36,7 +39,7 @@ its fiducial confidence limits (CL) using a logit analysis
 according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
 }
 \examples{
-head(lampreytox)
+head(lamprey_tox)
 
 # within the dataframe used, control dose, unless produced a value
 # during experimentation, are removed from the dataframe,
@@ -44,14 +47,14 @@ head(lampreytox)
 # make note of the control dose but do not include within analysis
 
 
-#calculate LC50 and LC99 for May
+# calculate LC50 and LC99 for May
 
 m <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
          weights = total,
-         data = lampreytox,
+         data = lamprey_tox,
          subset = c(month == "May"))
 
-#view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
+# view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
 #to lamprey in 2011
 
 m
@@ -60,7 +63,9 @@ m
 
 library(ggplot2)
 
-p1 <- ggplot(data = lampreytox[c(1:19), ],
+lc_may <- subset(lamprey_tox, month \%in\% c("May"))
+
+p1 <- ggplot(data = lc_may,
              aes(x = log10(dose), y = (response / total))) +
   geom_point() +
   geom_smooth(method = "glm",
@@ -69,33 +74,31 @@ p1 <- ggplot(data = lampreytox[c(1:19), ],
 
 p1
 
-#calculate LC50s and LC99s for multiple toxicity tests, June, August, and September
+# calculate LC50s and LC99s for multiple toxicity tests, June, August, and September
 
 j <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
         weights = total,
-        data = lampreytox,
+        data = lamprey_tox,
         subset = c(month == "June"))
 
 a <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
         weights = total,
-        data = lampreytox,
+        data = lamprey_tox,
         subset = c(month == "August"))
 
 s <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
         weights = total,
-        data = lampreytox,
+        data = lamprey_tox,
         subset = c(month == "September"))
 
-#group results together in a dataframe to plot with 'ggplot2'
+# group results together in a dataframe to plot with 'ggplot2'
 
 results <- rbind(m[, c(1, 3:8, 11)], j[,c(1, 3:8, 11)],
                  a[, c(1, 3:8, 11)], s[, c(1, 3:8, 11)])
+results$month <- factor(c(rep("May", 2), rep("June", 2),
+                          rep("August", 2), rep("September", 2)),
+                        levels = c("May", "June", "August", "September"))
 
-results$month <- with(results, factor(c("May", "May", "June", "June",
-                                        "August", "August", "September",
-                                        "September"),
-                                        levels = c("May", "June",
-                                        "August", "September")))
 
 p2 <- ggplot(data = results, aes(x = month, y = dose,
                              group = factor(p), fill = factor(p))) +
