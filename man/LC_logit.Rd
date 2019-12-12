@@ -4,7 +4,7 @@
 \alias{LC_logit}
 \title{Lethal Concentration Logit}
 \usage{
-LC_logit(formula, data, p = NULL, weights,
+LC_logit(formula, data, p = NULL, weights = NULL,
          subset = NULL, log_base = NULL,
          log_x = TRUE, het_sig = NULL,
          conf_level = NULL, long_output = TRUE)
@@ -51,44 +51,45 @@ head(lamprey_tox)
 
 m <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
          weights = total,
-         data = lamprey_tox,
+         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
          subset = c(month == "May"))
 
 # view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
-#to lamprey in 2011
+# to lamprey in 2011
 
 m
 
-#dose-response curve can be plotted using 'ggplot2'
+# dose-response curve can be plotted using 'ggplot2'
+# Uncomment the below lines to run create plots
 
-library(ggplot2)
+# library(ggplot2)
 
-lc_may <- subset(lamprey_tox, month \%in\% c("May"))
+# lc_may <- subset(lamprey_tox, month \%in\% c("May"))
 
-p1 <- ggplot(data = lc_may,
-             aes(x = log10(dose), y = (response / total))) +
-  geom_point() +
-  geom_smooth(method = "glm",
-            method.args = list(family = binomial(link = "logit")),
-            aes(weight = total), colour = "#FF0000", se = TRUE)
+# p1 <- ggplot(data = lc_may[lc_may$nominal_dose != 0, ],
+#              aes(x = log10(dose), y = (response / total))) +
+# geom_point() +
+# geom_smooth(method = "glm",
+#             method.args = list(family = binomial(link = "logit")),
+#             aes(weight = total), colour = "#FF0000", se = TRUE)
 
-p1
+# p1
 
 # calculate LC50s and LC99s for multiple toxicity tests, June, August, and September
 
 j <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
         weights = total,
-        data = lamprey_tox,
+        data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
         subset = c(month == "June"))
 
 a <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
         weights = total,
-        data = lamprey_tox,
+        data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
         subset = c(month == "August"))
 
 s <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
         weights = total,
-        data = lamprey_tox,
+        data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
         subset = c(month == "September"))
 
 # group results together in a dataframe to plot with 'ggplot2'
@@ -100,14 +101,14 @@ results$month <- factor(c(rep("May", 2), rep("June", 2),
                         levels = c("May", "June", "August", "September"))
 
 
-p2 <- ggplot(data = results, aes(x = month, y = dose,
-                             group = factor(p), fill = factor(p))) +
-  geom_col(position = position_dodge(width = 0.9), colour = "#000000") +
-  geom_errorbar(aes(ymin = (dose - LCL_dis), ymax = (dose + UCL_dis)),
-                size = 0.4, width = 0.06,
-                position = position_dodge(width = 0.9))
+# p2 <- ggplot(data = results, aes(x = month, y = dose,
+#                              group = factor(p), fill = factor(p))) +
+#   geom_col(position = position_dodge(width = 0.9), colour = "#000000") +
+#   geom_errorbar(aes(ymin = (dose - LCL_dis), ymax = (dose + UCL_dis)),
+#                 size = 0.4, width = 0.06,
+#                 position = position_dodge(width = 0.9))
 
-p2
+# p2
 }
 \references{
 Finney, D.J., 1971. Probit Analysis, Cambridge University Press, Cambridge, England, ISBN: 052108041X

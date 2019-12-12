@@ -5,7 +5,7 @@
 \title{Ratio test}
 \usage{
 ratio_test(model_1, model_2, percentage = NULL,
-           type = c("probit", "logit"), log_base = NULL, log_x = TRUE)
+           type = NULL, compare = NULL, log_base = NULL, log_x = TRUE)
 }
 \arguments{
 \item{model_1}{first model used in the ratio test. Should be an object of either a probit or logit model created using the \code{glm()} function. See example.}
@@ -14,14 +14,16 @@ ratio_test(model_1, model_2, percentage = NULL,
 
 \item{percentage}{either a single value or a vector for given LC or LT percentage desired to compare. Percentage is the same value used for the argument \code{p} in all \code{LC_} and \code{LT_} functions. For example, 50 will return and compare LC50 values for the two models. If more than one LC value is disired specify by creating a vector. LC values can be calculated down to the 1e-16 of a percentage (e.g. LC99.99). However, the tibble produced can and will round to nearest whole number.}
 
-\item{type}{Link type needs to be specfied to either \code{"probit"} which will return and used in calculations for a probit model for the desired LCs or LTs. If specified to \code{"logit"} then \code{ratio_test} will return and calcuate using a logit model for the desired LCs or LTs.}
+\item{type}{Link type needs to be specfied to either \code{"probit"} which is default and will return and used in calculations for a probit model for the desired LCs or LTs. If specified to \code{"logit"} then \code{ratio_test} will return and calcuate using a logit model for the desired LCs or LTs.}
+
+\item{compare}{Supply a character string to be used in the output letting the user know what models the LCs or LTs are being compared. Default output is "Model 1 - Model 2". See example.}
 
 \item{log_base}{default is \code{10} and will be used to  calculate results using the anti of \code{log10()} given that the x variable has been \code{log10} tranformed. If \code{FALSE} results will not be back transformed.}
 
 \item{log_x}{default is \code{TRUE} and will calculate results using the antilog of determined by \code{log_base} given that the x variable has been \code{log()} tranformed. If \code{FALSE} results will not be back transformed.}
 }
 \value{
-A tibble with \code{percentage} for the LC or LT value desired for the above percentage argument, \code{dose_1} and \code{dose_2} displayed calculated backtransformed or untransformed doses for the desired LC or LT values. Standard Error (\code{se}), Z test statistic (\code{test_stat}) and \code{p} value detemined using Z test statistic as determined using formulas in \href{http://onlinelibrary.wiley.com/doi/10.1897/05-320R.1/abstract}{Wheeler et al. 2006}.
+A tibble with \code{percentage} for the LC or LT value desired for the above percentage argument, \code{dose_1} and \code{dose_2} displayed calculated backtransformed or untransformed doses for the desired LC or LT values. Standard Error (\code{se}), Z test statistic (\code{test_stat}) and \code{p_value} detemined using Z test statistic as determined using formulas in \href{http://onlinelibrary.wiley.com/doi/10.1897/05-320R.1/abstract}{Wheeler et al. 2006}.
 .
 }
 \description{
@@ -35,14 +37,14 @@ head(lamprey_tox)
 # using glm() to detemine LC values using probit model for May and June
 
 m <- glm((response / total) ~ log10(dose),
-         data = lamprey_tox,
+         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
          subset = c(month == "May"),
          weights = total,
          family = binomial(link = "probit"))
 
 
 j <- glm((response / total) ~ log10(dose),
-         data = lamprey_tox,
+         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
          subset = c(month == "June"),
          weights = total,
          family = binomial(link = "probit"))
@@ -50,7 +52,8 @@ j <- glm((response / total) ~ log10(dose),
 # now that both May and June models have been made. use ratio_test to
 # compare LC50 values or whatever LC values of interest.
 
-ratios <- ratio_test(model_1 = m, model_2 = j, percentage = 50, type = "probit")
+ratios <- ratio_test(model_1 = m, model_2 = j, percentage = 50,
+compare = "May - June")
 
 # view ratio test results
 

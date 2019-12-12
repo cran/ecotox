@@ -4,7 +4,7 @@
 #' @description Calculates lethal time (LT) and
 #' its fiducial confidence limits (CL) using a probit analysis
 #' according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
-#' @usage LT_probit(formula, data, p = NULL, weights,
+#' @usage LT_probit(formula, data, p = NULL, weights = NULL,
 #'           subset = NULL, log_base = NULL,
 #'           log_x = TRUE, het_sig = NULL, conf_level = NULL,
 #'           long_output = TRUE)
@@ -46,7 +46,7 @@
 
 # Function  LT_probit ----
 LT_probit <- function(formula, data, p = NULL,
-               weights, subset = NULL, log_base = NULL,
+               weights = NULL, subset = NULL, log_base = NULL,
                log_x = TRUE,
                het_sig = NULL, conf_level = NULL,
                long_output = TRUE) {
@@ -90,9 +90,7 @@ LT_probit <- function(formula, data, p = NULL,
 
   if (pgof < het_sig) {
     het <- chi_square / df
-  }
-
-  else {
+  } else {
     het <- 1
   }
 
@@ -134,9 +132,7 @@ LT_probit <- function(formula, data, p = NULL,
   if (pgof < het_sig) {
 
   vcova <- vcov(model) * het
-  }
-
-  else {
+  } else {
     vcova <- vcov(model)
   }
 
@@ -164,9 +160,7 @@ LT_probit <- function(formula, data, p = NULL,
   t <- (1 - conf_level)
   if (pgof < het_sig) {
     tdis <- -qt((t / 2), df = df)
-  }
-
-  else {
+  } else {
     tdis <- -qnorm(t / 2)
   }
 
@@ -266,7 +260,7 @@ LT_probit <- function(formula, data, p = NULL,
 #' @description Calculates lethal time (LT) and
 #' its fiducial confidence limits (CL) using a logit analysis
 #' according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
-#' @usage LT_logit(formula, data, p = NULL, weights,
+#' @usage LT_logit(formula, data, p = NULL, weights = NULL,
 #'           subset = NULL, log_base = NULL, log_x = TRUE, het_sig = NULL,
 #'           conf_level = NULL, long_output = TRUE)
 #' @param formula an object of class `formula` or one that can be coerced to that class: a symbolic description of the model to be fitted.
@@ -348,9 +342,7 @@ LT_logit <- function(formula, data, p = NULL, weights = NULL,
 
   if (pgof < het_sig) {
     het <- chi_square / df
-  }
-
-  else {
+  } else {
     het <- 1
   }
 
@@ -391,9 +383,7 @@ LT_logit <- function(formula, data, p = NULL, weights = NULL,
   # covariance matrix
   if (pgof < het_sig) {
   vcova <- vcov(model) * het
-  }
-
-  else {
+  } else {
     vcova <- vcov(model)
   }
 
@@ -421,9 +411,7 @@ LT_logit <- function(formula, data, p = NULL, weights = NULL,
   t <- (1 - conf_level)
   if (pgof < het_sig) {
     tdis <- -qt((t / 2), df = df)
-  }
-
-  else {
+  } else {
     tdis <- -qnorm(t / 2)
   }
 

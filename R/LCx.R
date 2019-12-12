@@ -4,7 +4,7 @@
 #' @description Calculates lethal concentration (LC) and
 #' its fiducial confidence limits (CL) using a probit analysis
 #' according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
-#' @usage LC_probit(formula, data, p = NULL, weights,
+#' @usage LC_probit(formula, data, p = NULL, weights = NULL,
 #'           subset = NULL, log_base = NULL, log_x = TRUE,
 #'           het_sig = NULL, conf_level = NULL,
 #'           long_output = TRUE)
@@ -37,9 +37,9 @@
 #' # calculate LC50 and LC99
 #'
 #' m <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
-#'          weights = total,
-#'          data = lamprey_tox,
-#'          subset = c(month == "May"))
+#'                weights = total,
+#'                data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
+#'                subset = c(month == "May"))
 #'
 #' # view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
 #' # to lamprey in 2011
@@ -48,34 +48,34 @@
 #'
 #' # dose-response curve can be plotted using 'ggplot2'
 #'
-#' library(ggplot2)
+#' # library(ggplot2)
 #'
-#' lc_may <- subset(lamprey_tox, month %in% c("May"))
+#' # lc_may <- subset(lamprey_tox, month %in% c("May"))
 #'
-#' p1 <- ggplot(data = lc_may,
-#'              aes(x = log10(dose), y = (response / total))) +
-#'   geom_point() +
-#'   geom_smooth(method = "glm",
-#'             method.args = list(family = binomial(link = "probit")),
-#'             aes(weight = total), colour = "#FF0000", se = TRUE)
+#' # p1 <- ggplot(data = lc_may[lc_may$nominal_dose != 0, ],
+#' #              aes(x = log10(dose), y = (response / total))) +
+#' #   geom_point() +
+#' #   geom_smooth(method = "glm",
+#' #               method.args = list(family = binomial(link = "probit")),
+#' #               aes(weight = total), colour = "#FF0000", se = TRUE)
 #'
-#' p1
+#' # p1
 #'
 #' # calculate LC50s and LC99s for multiple toxicity tests, June, August, and September
 #'
 #' j <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lamprey_tox,
+#'         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
 #'         subset = c(month == "June"))
 #'
 #' a <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lamprey_tox,
+#'         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
 #'         subset = c(month == "August"))
 #'
 #' s <- LC_probit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lamprey_tox,
+#'         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
 #'         subset = c(month == "September"))
 #'
 #' # group results together in a dataframe to plot with 'ggplot2'
@@ -86,22 +86,21 @@
 #'                           rep("August", 2), rep("September", 2)),
 #'                         levels = c("May", "June", "August", "September"))
 #'
-#' p2 <- ggplot(data = results, aes(x = month, y = dose,
-#'                              group = factor(p), fill = factor(p))) +
-#'   geom_col(position = position_dodge(width = 0.9), colour = "#000000") +
-#'   geom_errorbar(aes(ymin = (dose - LCL_dis), ymax = (dose + UCL_dis)),
-#'                 size = 0.4, width = 0.06,
-#'                 position = position_dodge(width = 0.9))
+#' # p2 <- ggplot(data = results, aes(x = month, y = dose,
+#' #                              group = factor(p), fill = factor(p))) +
+#' #   geom_col(position = position_dodge(width = 0.9), colour = "#000000") +
+#' #   geom_errorbar(aes(ymin = (dose - LCL_dis), ymax = (dose + UCL_dis)),
+#' #                 size = 0.4, width = 0.06,
+#' #                 position = position_dodge(width = 0.9))
 #'
-#' p2
-#' @import ggplot2
+#' # p2
 #' @import stats
 #' @import tibble
 #' @export
 
 # Function  LC_probit ----
 LC_probit <- function(formula, data, p = NULL,
-                      weights,
+                      weights = NULL,
                       subset = NULL, log_base = NULL,
                       log_x = TRUE,
                       het_sig = NULL,
@@ -118,6 +117,9 @@ LC_probit <- function(formula, data, p = NULL,
     stop("Model needs the total of test organsim per dose to weight the model properly",
          call. = FALSE)
   }
+
+
+
 
   # make p a null object and create warning message if p isn't supplied
   if (is.null(p)) {
@@ -143,9 +145,7 @@ LC_probit <- function(formula, data, p = NULL,
 
   if (pgof < het_sig) {
     het <- chi_square / df
-  }
-
-  else {
+  } else {
     het <- 1
   }
 
@@ -187,9 +187,7 @@ LC_probit <- function(formula, data, p = NULL,
 
   if (pgof < het_sig) {
     vcova <- vcov(model) * het
-  }
-
-  else {
+  } else {
     vcova <- vcov(model)
   }
 
@@ -220,9 +218,7 @@ LC_probit <- function(formula, data, p = NULL,
 
   if (pgof < het_sig) {
     tdis <- -qt(t_2, df = df)
-  }
-
-  else {
+  } else {
     tdis <- -qnorm(t_2)
   }
 
@@ -260,19 +256,13 @@ LC_probit <- function(formula, data, p = NULL,
   var_m <- (1 / (m ^ 2)) * (var_b0 + 2 * m * cov_b0_b1 +
                               m ^ 2 * var_b1)
 
-  # if(is.null(log_base)) {
-  #   ex <- 10
-  #
-  # }
-
-
 
 
   if (log_x == TRUE) {
 
     if(is.null(log_base)) {
       log_base <- 10
-      }
+    }
     dose <- log_base ^ m
     LCL <- log_base ^ LCL
     UCL <- log_base ^ UCL
@@ -290,25 +280,25 @@ LC_probit <- function(formula, data, p = NULL,
 
   # Make a data frame from the data at all the different values
   if (long_output == TRUE) {
-   table <- tibble(p = p,
-                   n = n,
-                   dose = dose,
-                   LCL = LCL,
-                   UCL = UCL,
-                   LCL_dis = LCL_dis,
-                   UCL_dis = UCL_dis,
-                   chi_square = chi_square,
-                   df = df,
-                   pgof_sig = pgof,
-                   h = het,
-                   slope = b1,
-                   slope_se = slope_se,
-                   slope_sig = slope_sig,
-                   intercept = b0,
-                   intercept_se = intercept_se,
-                   intercept_sig = intercept_sig,
-                   z = z_value,
-                   var_m = var_m)
+    table <- tibble(p = p,
+                    n = n,
+                    dose = dose,
+                    LCL = LCL,
+                    UCL = UCL,
+                    LCL_dis = LCL_dis,
+                    UCL_dis = UCL_dis,
+                    chi_square = chi_square,
+                    df = df,
+                    pgof_sig = pgof,
+                    h = het,
+                    slope = b1,
+                    slope_se = slope_se,
+                    slope_sig = slope_sig,
+                    intercept = b0,
+                    intercept_se = intercept_se,
+                    intercept_sig = intercept_sig,
+                    z = z_value,
+                    var_m = var_m)
   }
   if (long_output == FALSE) {
     table <- tibble(p = p,
@@ -328,7 +318,7 @@ LC_probit <- function(formula, data, p = NULL,
 #' @description Calculates lethal concentration (LC) and
 #' its fiducial confidence limits (CL) using a logit analysis
 #' according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
-#' @usage LC_logit(formula, data, p = NULL, weights,
+#' @usage LC_logit(formula, data, p = NULL, weights = NULL,
 #'          subset = NULL, log_base = NULL,
 #'          log_x = TRUE, het_sig = NULL,
 #'          conf_level = NULL, long_output = TRUE)
@@ -363,44 +353,45 @@ LC_probit <- function(formula, data, p = NULL,
 #'
 #' m <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
 #'          weights = total,
-#'          data = lamprey_tox,
+#'          data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
 #'          subset = c(month == "May"))
 #'
 #' # view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
-#' #to lamprey in 2011
+#' # to lamprey in 2011
 #'
 #' m
 #'
-#' #dose-response curve can be plotted using 'ggplot2'
+#' # dose-response curve can be plotted using 'ggplot2'
+#' # Uncomment the below lines to run create plots
 #'
-#' library(ggplot2)
+#' # library(ggplot2)
 #'
-#' lc_may <- subset(lamprey_tox, month %in% c("May"))
+#' # lc_may <- subset(lamprey_tox, month %in% c("May"))
 #'
-#' p1 <- ggplot(data = lc_may,
-#'              aes(x = log10(dose), y = (response / total))) +
-#'   geom_point() +
-#'   geom_smooth(method = "glm",
-#'             method.args = list(family = binomial(link = "logit")),
-#'             aes(weight = total), colour = "#FF0000", se = TRUE)
+#' # p1 <- ggplot(data = lc_may[lc_may$nominal_dose != 0, ],
+#' #              aes(x = log10(dose), y = (response / total))) +
+#' # geom_point() +
+#' # geom_smooth(method = "glm",
+#' #             method.args = list(family = binomial(link = "logit")),
+#' #             aes(weight = total), colour = "#FF0000", se = TRUE)
 #'
-#' p1
+#' # p1
 #'
 #' # calculate LC50s and LC99s for multiple toxicity tests, June, August, and September
 #'
 #' j <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lamprey_tox,
+#'         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
 #'         subset = c(month == "June"))
 #'
 #' a <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lamprey_tox,
+#'         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
 #'         subset = c(month == "August"))
 #'
 #' s <- LC_logit((response / total) ~ log10(dose), p = c(50, 99),
 #'         weights = total,
-#'         data = lamprey_tox,
+#'         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
 #'         subset = c(month == "September"))
 #'
 #' # group results together in a dataframe to plot with 'ggplot2'
@@ -412,18 +403,18 @@ LC_probit <- function(formula, data, p = NULL,
 #'                         levels = c("May", "June", "August", "September"))
 #'
 #'
-#' p2 <- ggplot(data = results, aes(x = month, y = dose,
-#'                              group = factor(p), fill = factor(p))) +
-#'   geom_col(position = position_dodge(width = 0.9), colour = "#000000") +
-#'   geom_errorbar(aes(ymin = (dose - LCL_dis), ymax = (dose + UCL_dis)),
-#'                 size = 0.4, width = 0.06,
-#'                 position = position_dodge(width = 0.9))
+#' # p2 <- ggplot(data = results, aes(x = month, y = dose,
+#' #                              group = factor(p), fill = factor(p))) +
+#' #   geom_col(position = position_dodge(width = 0.9), colour = "#000000") +
+#' #   geom_errorbar(aes(ymin = (dose - LCL_dis), ymax = (dose + UCL_dis)),
+#' #                 size = 0.4, width = 0.06,
+#' #                 position = position_dodge(width = 0.9))
 #'
-#' p2
+#' # p2
 #' @export
 
 # Function  LC_logit ----
-LC_logit <- function(formula, data, p = NULL, weights,
+LC_logit <- function(formula, data, p = NULL, weights = NULL,
                      subset = NULL, log_base = NULL,
                      log_x = TRUE,
                      het_sig = NULL, conf_level = NULL,
@@ -443,10 +434,10 @@ LC_logit <- function(formula, data, p = NULL, weights,
 
 
   # make p a null object and create warning message if p isn't supplied
-    if (is.null(p)) {
-      p <- seq(1, 99, 1)
-      warning(call. = FALSE, "`p`argument has to be supplied otherwise LC values for 1-99 will be displayed")
-    }
+  if (is.null(p)) {
+    p <- seq(1, 99, 1)
+    warning(call. = FALSE, "`p`argument has to be supplied otherwise LC values for 1-99 will be displayed")
+  }
   # Calculate heterogeneity correction to confidence intervals
   # according to Finney, 1971, (p.72, eq. 4.27; also called "h")
   # Heterogeneity correction factor is used if
@@ -465,8 +456,7 @@ LC_logit <- function(formula, data, p = NULL, weights,
 
   if (pgof < het_sig) {
     het <- chi_square / df
-  }
-  else {
+  } else {
     het <- 1
   }
 
@@ -506,9 +496,7 @@ LC_logit <- function(formula, data, p = NULL, weights,
   # covariance matrix
   if (pgof < het_sig) {
     vcova <- vcov(model) * het
-  }
-
-  else {
+  } else {
     vcova <- vcov(model)
   }
 
@@ -539,9 +527,7 @@ LC_logit <- function(formula, data, p = NULL, weights,
 
   if (pgof < het_sig) {
     tdis <- -qt(t_2, df = df)
-  }
-
-  else {
+  } else {
     tdis <- -qnorm(t_2)
   }
 
@@ -637,4 +623,6 @@ LC_logit <- function(formula, data, p = NULL, weights,
   return(table)
 
 }
+
+
 

@@ -1,9 +1,10 @@
 context("Test LC_logit")
 
+# test if caculatins are correct ----
 test_that("Determine if LC_logit calculations are correct", {
   m <- LC_logit((response / total) ~ log10(dose), p = c(50),
                  weights = total,
-                 data = lamprey_tox,
+                 data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
                  subset = c(month == "May"))
 
   expect_equal(m$dose, expected = 1.256, tolerance = 0.001)
@@ -16,7 +17,7 @@ test_that("Determine if LC_logit calculations are correct", {
 
   j <- LC_logit((response / total) ~ log10(dose), p = c(50),
                 weights = total,
-                data = lamprey_tox,
+                data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
                 subset = c(month == "June"))
 
   expect_equal(j$dose, expected = 2.654, tolerance = 0.001)
@@ -31,7 +32,7 @@ test_that("Determine if LC_logit calculations are correct", {
 
   a <- LC_logit((response / total) ~ log10(dose), p = c(50),
                  weights = total,
-                 data = lamprey_tox,
+                 data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
                  subset = c(month == "August"))
 
   expect_equal(a$dose, expected = 4.013, tolerance = 0.001)
@@ -45,7 +46,7 @@ test_that("Determine if LC_logit calculations are correct", {
 
   s <- LC_logit((response / total) ~ log10(dose), p = c(50),
                 weights = total,
-                data = lamprey_tox,
+                data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
                 subset = c(month == "September"))
 
   expect_equal(s$dose, expected = 2.118, tolerance = 0.001)
@@ -58,7 +59,7 @@ test_that("Determine if LC_logit calculations are correct", {
 
   mm <- LC_logit((response / total) ~ dose, p = c(50),
                   weights = total,
-                  data = lamprey_tox,
+                  data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
                   log_x = FALSE,
                   subset = c(month == "May"))
   expect_equal(mm$dose, expected = 1.279, tolerance = 0.001)
@@ -69,9 +70,13 @@ test_that("Determine if LC_logit calculations are correct", {
   expect_equal(mm$chi_square, expected = 16.593, tolerance = 0.001)
   expect_equal(mm$pgof_sig, expected =  0.412, tolerance = 0.001)
 
+})
+
+# test if long and short outputs -----
+test_that("Determine if long and short outputs work", {
   ma <- LC_logit((response / total) ~ log10(dose), p = c(50),
                   weights = total,
-                  data = lamprey_tox,
+                  data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
                   subset = c(month == "May"),
                   long_output = FALSE)
   expect_equal(ncol(ma), 7)
@@ -79,11 +84,30 @@ test_that("Determine if LC_logit calculations are correct", {
 
   may <- LC_logit((response / total) ~ log10(dose), p = c(50),
                    weights = total,
-                   data = lamprey_tox,
+                   data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
                    subset = c(month == "May"),
                    long_output = TRUE)
   expect_equal(ncol(may), 19)
   expect_equal(nrow(may), 1)
 
+})
 
+# test errors for not supplying weights ----
+test_that("test error for not supplying weights", {
+
+  expect_error(expect_warning(LC_logit((response / total) ~ log10(dose),
+                                        p = 50,
+                                        data = lamprey_tox,
+                                        subset = c(month == "May"))))
+
+})
+
+
+# warning for not suppling p -----
+test_that("LC_logit throws warning when p is not supplied", {
+
+  expect_warning(LC_logit((response / total) ~ log10(dose),
+                           weights = total,
+                           data = lamprey_tox,
+                           subset = c(month == "May")))
 })

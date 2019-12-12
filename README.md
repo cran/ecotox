@@ -4,7 +4,7 @@
 
 ## Overview
 ['ecotox'](https://CRAN.R-project.org/package=ecotox) was created as simple approach to using either probit or logit analysis to calculate lethal concentration (LC) or time (LT) and the appropriate fiducial confidence limits desired for selected LC or LT for ecotoxicology studies (Finney 1971; Wheeler et al. 2006; Robertson et al. 2007). The simplicity of ['ecotox'](https://CRAN.R-project.org/package=ecotox) comes from the syntax it implies within its functions which are similar to functions like [glm()](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/glm.html) and [lm()](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/lm.html). In addition to the simplicity of the syntax, a comprehensive tibble is produced which gives the user a predicted LC or LT value for the desired level and a suite of parameters such as fiducial confidence limits, z-value, and slope.
-['ecotox'](https://CRAN.R-project.org/package=ecotox) was built for and is published in Hlina et al. *In Preparation*. 
+['ecotox'](https://CRAN.R-project.org/package=ecotox) was built for and is published in Hlina et al. *In Review*. 
 
 
 ## Installation
@@ -42,7 +42,7 @@ head(lamprey_tox)
 m <- LC_probit((response / total) ~ log10(dose),
                 p = c(50, 99),
                 weights = total,
-                data = lamprey_tox,
+                data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
                 subset = c(month == "May"))
 
 ## view calculated LC50 and LC99 for seasonal toxicity of a pisicide,
@@ -57,7 +57,7 @@ m
 m_2 <- LC_probit((response / total) ~ dose,
                   p = c(50, 99),
                   weights = total,
-                  data = lamprey_tox,
+                  data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
                   subset = c(month == "May"), 
                   log_x = FALSE, 
                   long_output = FALSE)
@@ -69,6 +69,38 @@ m_2
 
 
 ## A new function `ratio_test` has been added 
+
+# view lamprey_tox data
+
+head(lamprey_tox)
+
+# using glm() to detemine LC values using probit model for May and June
+
+m <- glm((response / total) ~ log10(dose),
+         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
+         subset = c(month == "May"),
+         weights = total,
+         family = binomial(link = "probit"))
+
+
+j <- glm((response / total) ~ log10(dose),
+         data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
+         subset = c(month == "June"),
+         weights = total,
+         family = binomial(link = "probit"))
+
+# now that both May and June models have been made. use ratio_test to
+# compare LC50 values or whatever LC values of interest.
+
+ratios <- ratio_test(model_1 = m, model_2 = j, 
+                     percentage = 50, 
+                     compare = "May - June")
+
+# view ratio test results
+
+ratios
+
+
 ``` 
 
 ## References 
@@ -83,7 +115,7 @@ m_2
 
 * When using this package please cite the following  publication:
 
-  Hlina, B.L., Birceanu, O., Robinson, C.S., Thackeray, N., Tessier, L.R., Muhametsafina, A., Bragg, L.M., Servos, M.R., Wilkie, M.P. *In Preparation*. Changes in the sensitivity of piscicide in an invasive species. Environmental Science & Technology.
+  Hlina, B.L., Birceanu, O., Robinson, C.S., Dhiyebi, H., Wilkie, M.P. *In Reivew*. Seasonal Variation in the Sensitivity of Invasive Sea Lampreys to the Lampricide TFM: Importance of Energy Reserves and Temperature. North American Journal of Fisheries Management.
 
 
-* Version 1.4.0 written by Benjamin L. Hlina, Carleton University, Ottawa, Ontario, Canada. Written in ['Programming Language R'](https://www.r-project.org/), version 3.5.3 (2019-03-11) -- "Great Truth". Run on a PC with Intel&reg; Core&trade; I7 - Q820 CPU, 1.73 GHz processor, 8.0 GB RAM, and Microsoft Windows 7 Professional operating system, 2009 Service Pack 1. Source code is available at ['ecotox'](https://github.com/benjaminhlina/ecotox) or by contacting Benjamin L. Hlina at benjamin.hlina@gmail.com
+* Version 1.4.1 written by Benjamin L. Hlina, Carleton University, Ottawa, Ontario, Canada. Written in ['Programming Language R'](https://www.r-project.org/), version 3.6.1 (2019-07-05) -- "Action of the Toes". Source code is available at ['ecotox'](https://github.com/benjaminhlina/ecotox) or by contacting Benjamin L. Hlina at benjamin.hlina@gmail.com
