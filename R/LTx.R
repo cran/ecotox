@@ -11,7 +11,7 @@
 #' @param formula an object of class `formula` or one that can be coerced to that class: a symbolic description of the model to be fitted.
 #' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which `LT_probit` is called.
 #' @param p Lethal time (LT) values for given p, example will return a LT50 value if p equals 50. If more than one LT value wanted specify by creating a vector. LT values can be calculated down to the 1e-16 of a percentage (e.g. LT99.99). However, the tibble produced can and will round to nearest whole number.
-#' @param weights vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.
+#' @param weights vector of 'prior weights' to be used in the fitting process. Only needs to be supplied if you are taking the response / total for your response variable within the formula call of `LC_probit`. Otherwise if you use cbind(response, non-response) method you do not need to supply weights. If you do the model will be incorrect. If you don't supply weights there is a warning that will help you to make sure you are using one method or the other. See the following StackExchange post about differences [cbind() function in R for a logistic regression](https://stats.stackexchange.com/questions/259502/in-using-the-cbind-function-in-r-for-a-logistic-regression-on-a-2-times-2-t).
 #' @param subset allows for the data to be subseted if desired. Default set to `NULL`.
 #' @param log_base default is `10` and will be used to  calculate results using the anti of `log10()` given that the x variable has been `log10` tranformed. If `FALSE` results will not be back transformed.
 #' @param log_x default is `TRUE` and will calculate results using the antilog of determined by `log_base` given that the x variable has been `log()` tranformed. If `FALSE` results will not be back transformed.
@@ -59,9 +59,10 @@ LT_probit <- function(formula, data, p = NULL,
 
   # error message for missing weights argument in function call
   if(missing(weights)) {
-    stop("Model needs the total of test organsim per dose to weight the model properly",
-         call. = FALSE)
+    warning ("Are you using cbind(response, non-response) method as your y variable, if so do not weight the model. If you are using (response / total) method, model needs the total of test organisms per dose to weight the model properly",
+             call. = FALSE)
   }
+
 
 
   # make p a null object and create warning message if p isn't supplied
@@ -266,7 +267,7 @@ LT_probit <- function(formula, data, p = NULL,
 #' @param formula an object of class `formula` or one that can be coerced to that class: a symbolic description of the model to be fitted.
 #' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which `LT_logit` is called.
 #' @param p Lethal time (LT) values for given p, example will return a LT50 value if p equals 50. If more than one LT value wanted specify by creating a vector. LT values can be calculated down to the 1e-16 of a percentage (e.g. LT99.99).However, the tibble produced can and will round to nearest whole number.
-#' @param weights vector of 'prior weights' to be used in the fitting process. Should be a numeric vector and is required for analysis.
+#' @param weights vector of 'prior weights' to be used in the fitting process. Only needs to be supplied if you are taking the response / total for your response variable within the formula call of `LC_probit`. Otherwise if you use cbind(response, non-response) method you do not need to supply weights. If you do the model will be incorrect. If you don't supply weights there is a warning that will help you to make sure you are using one method or the other. See the following StackExchange post about differences [cbind() function in R for a logistic regression](https://stats.stackexchange.com/questions/259502/in-using-the-cbind-function-in-r-for-a-logistic-regression-on-a-2-times-2-t).
 #' @param subset allows for the data to be subseted if desired. Default set to `NULL`.
 #' @param log_base default is `10` and will be used to  calculate results using the anti of `log10()` given that the x variable has been `log10` tranformed. If `FALSE` results will not be back transformed.
 #' @param log_x default is `TRUE` and will calculate results using the antilog of determined by `log_base` given that the x variable has been `log()` tranformed. If `FALSE` results will not be back transformed.
@@ -314,8 +315,8 @@ LT_logit <- function(formula, data, p = NULL, weights = NULL,
 
   # error message for missing weights argument in function call
   if(missing(weights)) {
-    stop("Model needs the total of test organsim per dose to weight the model properly",
-         call. = FALSE)
+    warning ("Are you using cbind(response, non-response) method as your y variable, if so do not weight the model. If you are using (response / total) method, model needs the total of test organisms per dose to weight the model properly",
+             call. = FALSE)
   }
 
 

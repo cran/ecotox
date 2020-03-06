@@ -25,7 +25,7 @@ devtools::install_github("benjaminhlina/ecotox")
 
 ## Example
 
-This is an example which uses the LC_probit function to calculate a LC<sub>50</sub> and LC<sub>99</sub> for a probit analysis : 
+This is an example which uses the LC_probit function to calculate a LC<sub>50</sub> and LC<sub>99</sub> for a probit analysis: 
 
 
 ``` r
@@ -67,6 +67,33 @@ m_2 <- LC_probit((response / total) ~ dose,
 
 m_2
 
+``` 
+See StackExchange post about differences in using `cbind()` vs. `response / total` [cbind() function in R for a logistic regression](https://stats.stackexchange.com/questions/259502/in-using-the-cbind-function-in-r-for-a-logistic-regression-on-a-2-times-2-t).
+
+``` r
+## Additionally changes have been made to allow for the user 
+## to use `cbind()` method when specificying the response varialbe  
+
+m_3 <- LC_probit(cbind(response, survive) ~ log10(dose),
+                  p = c(50, 99),
+                  data = lamprey_tox[lamprey_tox$nominal_dose != 0, ],
+                  subset = c(month == "May"))
+                  
+
+m_3 
+
+# notice that m and m_3 produce the same results, however m_3 will produce 
+# a warning to ensure you have not weighted the model as it is not necessary 
+
+
+```
+
+
+
+Example of using `ratio_test` from [Wheeler et al. 2006](http://onlinelibrary.wiley.com/doi/10.1897/05-320R.1/abstract) to determine differences in LC values:
+
+
+``` r
 
 ## A new function `ratio_test` has been added 
 
@@ -118,4 +145,4 @@ ratios
   Hlina, B.L., Birceanu, O., Robinson, C.S., Dhiyebi, H., Wilkie, M.P. *In Reivew*. Seasonal Variation in the Sensitivity of Invasive Sea Lampreys to the Lampricide TFM: Importance of Energy Reserves and Temperature. North American Journal of Fisheries Management.
 
 
-* Version 1.4.1 written by Benjamin L. Hlina, Carleton University, Ottawa, Ontario, Canada. Written in ['Programming Language R'](https://www.r-project.org/), version 3.6.1 (2019-07-05) -- "Action of the Toes". Source code is available at ['ecotox'](https://github.com/benjaminhlina/ecotox) or by contacting Benjamin L. Hlina at benjamin.hlina@gmail.com
+* Version 1.4.2 written by Benjamin L. Hlina, Carleton University, Ottawa, Ontario, Canada. Written in ['Programming Language R'](https://www.r-project.org/), version 3.6.1 (2019-07-05) -- "Action of the Toes". Source code is available at ['ecotox'](https://github.com/benjaminhlina/ecotox) or by contacting Benjamin L. Hlina at benjamin.hlina@gmail.com
