@@ -4,10 +4,19 @@
 \alias{LT_probit}
 \title{Lethal Time Probit}
 \usage{
-LT_probit(formula, data, p = NULL, weights = NULL,
-          subset = NULL, log_base = NULL,
-          log_x = TRUE, het_sig = NULL, conf_level = NULL,
-          long_output = TRUE)
+LT_probit(
+  formula,
+  data,
+  p = NULL,
+  weights = NULL,
+  subset = NULL,
+  log_base = NULL,
+  log_x = TRUE,
+  het_sig = NULL,
+  conf_level = NULL,
+  conf_type = NULL,
+  long_output = TRUE
+)
 }
 \arguments{
 \item{formula}{an object of class \code{formula} or one that can be coerced to that class: a symbolic description of the model to be fitted.}
@@ -20,18 +29,20 @@ LT_probit(formula, data, p = NULL, weights = NULL,
 
 \item{subset}{allows for the data to be subseted if desired. Default set to \code{NULL}.}
 
-\item{log_base}{default is \code{10} and will be used to  calculate results using the anti of \code{log10()} given that the x variable has been \code{log10} tranformed. If \code{FALSE} results will not be back transformed.}
+\item{log_base}{default is \code{10} and will be used to  calculate results using the anti of \code{log10()} given that the x variable has been \code{log10} transformed. If \code{FALSE} results will not be back transformed.}
 
-\item{log_x}{default is \code{TRUE} and will calculate results using the antilog of determined by \code{log_base} given that the x variable has been \code{log()} tranformed. If \code{FALSE} results will not be back transformed.}
+\item{log_x}{default is \code{TRUE} and will calculate results using the antilog of determined by \code{log_base} given that the x variable has been \code{log()} transformed. If \code{FALSE} results will not be back transformed.}
 
 \item{het_sig}{significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. \code{NULL} is set to 0.15.}
 
 \item{conf_level}{Adjust confidence level as necessary or \code{NULL} set at 0.95.}
 
-\item{long_output}{default is \code{TRUE} which will return a tibble with all 19 variabless. If \code{FALSE} the tibble returned will consist of the p level, n, the predicted LC for given p level, lower and upper confidence limits and their distances.}
+\item{conf_type}{default is \code{"fl"} which will calculate fudicial confidence limits per Finney 1971. If set to \code{"dm"} the delta method will be used instead.}
+
+\item{long_output}{default is \code{TRUE} which will return a tibble with all 17 variables. If \code{FALSE} the tibble returned will consist of the p level, n, the predicted LC for given p level, lower and upper confidence limits.}
 }
 \value{
-Returns a tibble with predicted LT for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LT (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LT variance.
+Returns a tibble with predicted LT for given p level, lower CL (LCL), upper CL (UCL), LCL, Pearson's chi square goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LT variance.
 }
 \description{
 Calculates lethal time (LT) and

@@ -4,22 +4,19 @@
 #' @description Calculates lethal time (LT) and
 #' its fiducial confidence limits (CL) using a probit analysis
 #' according to Finney 1971, Wheeler et al. 2006, and Robertson et al. 2007.
-#' @usage LT_probit(formula, data, p = NULL, weights = NULL,
-#'           subset = NULL, log_base = NULL,
-#'           log_x = TRUE, het_sig = NULL, conf_level = NULL,
-#'           long_output = TRUE)
 #' @param formula an object of class `formula` or one that can be coerced to that class: a symbolic description of the model to be fitted.
 #' @param data an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which `LT_probit` is called.
 #' @param p Lethal time (LT) values for given p, example will return a LT50 value if p equals 50. If more than one LT value wanted specify by creating a vector. LT values can be calculated down to the 1e-16 of a percentage (e.g. LT99.99). However, the tibble produced can and will round to nearest whole number.
 #' @param weights vector of 'prior weights' to be used in the fitting process. Only needs to be supplied if you are taking the response / total for your response variable within the formula call of `LC_probit`. Otherwise if you use cbind(response, non-response) method you do not need to supply weights. If you do the model will be incorrect. If you don't supply weights there is a warning that will help you to make sure you are using one method or the other. See the following StackExchange post about differences [cbind() function in R for a logistic regression](https://stats.stackexchange.com/questions/259502/in-using-the-cbind-function-in-r-for-a-logistic-regression-on-a-2-times-2-t).
 #' @param subset allows for the data to be subseted if desired. Default set to `NULL`.
-#' @param log_base default is `10` and will be used to  calculate results using the anti of `log10()` given that the x variable has been `log10` tranformed. If `FALSE` results will not be back transformed.
-#' @param log_x default is `TRUE` and will calculate results using the antilog of determined by `log_base` given that the x variable has been `log()` tranformed. If `FALSE` results will not be back transformed.
+#' @param log_base default is `10` and will be used to  calculate results using the anti of `log10()` given that the x variable has been `log10` transformed. If `FALSE` results will not be back transformed.
+#' @param log_x default is `TRUE` and will calculate results using the antilog of determined by `log_base` given that the x variable has been `log()` transformed. If `FALSE` results will not be back transformed.
 
 #' @param het_sig significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. `NULL` is set to 0.15.
 #' @param conf_level  Adjust confidence level as necessary or `NULL` set at 0.95.
-#' @param long_output default is `TRUE` which will return a tibble with all 19 variabless. If `FALSE` the tibble returned will consist of the p level, n, the predicted LC for given p level, lower and upper confidence limits and their distances.
-#' @return Returns a tibble with predicted LT for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LT (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi square goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LT variance.
+#' @param conf_type default is `"fl"` which will calculate fudicial confidence limits per Finney 1971. If set to `"dm"` the delta method will be used instead.
+#' @param long_output default is `TRUE` which will return a tibble with all 17 variables. If `FALSE` the tibble returned will consist of the p level, n, the predicted LC for given p level, lower and upper confidence limits.
+#' @return Returns a tibble with predicted LT for given p level, lower CL (LCL), upper CL (UCL), LCL, Pearson's chi square goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LT variance.
 #' @references
 #'
 #' Finney, D.J., 1971. Probit Analysis, Cambridge University Press, Cambridge, England, ISBN: 052108041X
@@ -46,10 +43,11 @@
 
 # Function  LT_probit ----
 LT_probit <- function(formula, data, p = NULL,
-               weights = NULL, subset = NULL, log_base = NULL,
-               log_x = TRUE,
-               het_sig = NULL, conf_level = NULL,
-               long_output = TRUE) {
+                      weights = NULL, subset = NULL, log_base = NULL,
+                      log_x = TRUE,
+                      het_sig = NULL, conf_level = NULL,
+                      conf_type = NULL,
+                      long_output = TRUE) {
 
   model <- do.call("glm", list(formula = formula,
                                family = binomial(link = "probit"),
@@ -73,11 +71,7 @@ LT_probit <- function(formula, data, p = NULL,
   }
 
 
-  # Calculate heterogeneity correction to confidence intervals
-  # according to Finney, 1971, (p.72, eq. 4.27; also called "h")
-  # Heterogeneity correction factor is used if
-  # pearson's goodness of fit test (pgof) returns a sigficance
-  # value less than 0.150 (source: 'SPSS 24')
+
 
   chi_square <- sum(residuals(model, type = "pearson") ^ 2)
 
@@ -85,15 +79,6 @@ LT_probit <- function(formula, data, p = NULL,
 
   pgof <- pchisq(chi_square, df, lower.tail = FALSE)
 
-  if (is.null(het_sig)) {
-    het_sig <- 0.150
-  }
-
-  if (pgof < het_sig) {
-    het <- chi_square / df
-  } else {
-    het <- 1
-  }
 
   # Extract slope and intercept SE, slope and intercept signifcance
   # z-value, & N
@@ -123,77 +108,109 @@ LT_probit <- function(formula, data, p = NULL,
 
   #sample size
   n <- df + 2
-
-  # variances have to be adjusted for heterogenity
-  # if pgof returns a signfacnce value less than 0.15
-  # (Finney 1971 p 72; 'SPSS 24')
-
-  # covariance matrix
-
-  if (pgof < het_sig) {
-
-  vcova <- vcov(model) * het
-  } else {
-    vcova <- vcov(model)
-  }
-
-  # Slope variance
-
-    var_b1 <- vcova[2, 2]
-
-  # Intercept variance
-
-    var_b0 <- vcova[1, 1]
-
-  # intercept and slope covariance
-
-    cov_b0_b1 <- vcova[1, 2]
-
-  # Adjust distibution depending on heterogeneity (Finney, 1971,  p72,
-  # t distubtion used instead of normal distubtion  with appropriate df
-  # if pgof returns a signfacnce value less than 0.15
-  # (Finney 1971 p 72; 'SPSS 24')
-
-  if (is.null(conf_level)) {
-    conf_level <- 0.95
-  }
-
-  t <- (1 - conf_level)
-  if (pgof < het_sig) {
-    tdis <- -qt((t / 2), df = df)
-  } else {
-    tdis <- -qnorm(t / 2)
-  }
-
-  # Calculate g (Finney, 1971, p 78, eq. 4.36) "With almost
-  # all good sets of data, g will be substantially smaller
-  # than 1.0 and ## seldom greater than 0.4."
-
-  g <- (tdis ^ 2 * var_b1) / b1 ^ 2
-
   # Calculate m for all LC levels based on probits
   # in est (Robertson et al., 2007, pg. 27; or "m" in Finney, 1971, p. 78)
 
   est <- qnorm(p / 100)
   m <- (est - b0) / b1
+  # Calculate heterogeneity correction to confidence intervals
+  # according to Finney, 1971, (p.72, eq. 4.27; also called "h")
+  # Heterogeneity correction factor is used if
+  # pearson's goodness of fit test (pgof) returns a sigficance
+  # value less than 0.150 (source: 'SPSS 24')
+  if (is.null(het_sig)) {
+    het_sig <- 0.150
+  }
 
-  # Calculate correction of fiducial confidence limits according to
-  # Fieller method
-  # (Finney, 1971,# p. 78-79. eq. 4.35)
-  # v11 = var_b1 , v22 = var_b0, v12 = cov_b0_b1
+  if (pgof < het_sig) {
+    het <- chi_square / df
+  } else {
+    het <- 1
+  }
 
-  cl_part_1 <- (g / (1 - g)) * (m + (cov_b0_b1 / var_b1))
-  cl_part_2 <- var_b0 + (2 * cov_b0_b1 * m) + (m ^ 2 * var_b1) -
-            (g * (var_b0 - cov_b0_b1 ^ 2 / var_b1))
+  # set confiidewnce limit type for calculating confidence limtis
+  if (is.null(conf_type)) {
+    conf_type <- c("fl")
+  } else {
 
-  cl_part_3 <- (tdis / ((1 - g) * abs(b1))) * sqrt(cl_part_2)
+    conf_type <- c("dm")
 
-  # Calculate the fiducial limit LFL=lower fiducial limit,
-  # UFL = upper fiducial limit (Finney, 1971, p. 78-79. eq. 4.35)
+  }
 
-  LCL <- (m + (cl_part_1 - cl_part_3))
-  UCL <- (m + (cl_part_1 + cl_part_3))
+  if (conf_type == "fl") {
 
+    # variances have to be adjusted for heterogenity
+    # if pgof returns a signfacnce value less than 0.15
+    # (Finney 1971 p 72; 'SPSS 24')
+
+    # covariance matrix
+
+    if (pgof < het_sig) {
+
+      vcova <- vcov(model) * het
+    } else {
+      vcova <- vcov(model)
+    }
+
+    # Slope variance
+
+    var_b1 <- vcova[2, 2]
+
+    # Intercept variance
+
+    var_b0 <- vcova[1, 1]
+
+    # intercept and slope covariance
+
+    cov_b0_b1 <- vcova[1, 2]
+
+    # Adjust distibution depending on heterogeneity (Finney, 1971,  p72,
+    # t distubtion used instead of normal distubtion  with appropriate df
+    # if pgof returns a signfacnce value less than 0.15
+    # (Finney 1971 p 72; 'SPSS 24')
+
+    if (is.null(conf_level)) {
+      conf_level <- 0.95
+    }
+
+    t <- (1 - conf_level)
+    if (pgof < het_sig) {
+      tdis <- -qt((t / 2), df = df)
+    } else {
+      tdis <- -qnorm(t / 2)
+    }
+
+    # Calculate g (Finney, 1971, p 78, eq. 4.36) "With almost
+    # all good sets of data, g will be substantially smaller
+    # than 1.0 and ## seldom greater than 0.4."
+
+    g <- (tdis ^ 2 * var_b1) / b1 ^ 2
+
+
+    # Calculate correction of fiducial confidence limits according to
+    # Fieller method
+    # (Finney, 1971,# p. 78-79. eq. 4.35)
+    # v11 = var_b1 , v22 = var_b0, v12 = cov_b0_b1
+
+    cl_part_1 <- (g / (1 - g)) * (m + (cov_b0_b1 / var_b1))
+    cl_part_2 <- var_b0 + (2 * cov_b0_b1 * m) + (m ^ 2 * var_b1) -
+      (g * (var_b0 - cov_b0_b1 ^ 2 / var_b1))
+
+    cl_part_3 <- (tdis / ((1 - g) * abs(b1))) * sqrt(cl_part_2)
+
+    # Calculate the fiducial limit LFL=lower fiducial limit,
+    # UFL = upper fiducial limit (Finney, 1971, p. 78-79. eq. 4.35)
+
+    LCL <- (m + (cl_part_1 - cl_part_3))
+    UCL <- (m + (cl_part_1 + cl_part_3))
+  }
+
+  # calculate standard error
+  cf <- -cbind(1, m) / b1
+
+  se_1 <- ((cf %*% vcov(model)) * cf) %*% c(1, 1)
+
+  se_2 <- as.numeric(sqrt(se_1))
   # Calculate variance for m (Robertson et al., 2007, pg. 27)
 
   var_m <- (1 / (m ^ 2)) * (var_b0 + 2 * m * cov_b0_b1 + var_b1 * m ^ 2)
@@ -206,17 +223,16 @@ LT_probit <- function(formula, data, p = NULL,
     time <- log_base ^ m
     LCL <- log_base ^ LCL
     UCL <- log_base ^ UCL
-    LCL_dis <- time - LCL
-    UCL_dis <- UCL - time
+    se_2 <- log_base ^ se_2
   }
 
   if (log_x == FALSE) {
     time <- m
     LCL <- LCL
     UCL <- UCL
-    LCL_dis <-  time - LCL
-    UCL_dis <- UCL - time
+    se <- se_2
   }
+
 
 
   # Make a data frame from the data at all the different values
@@ -226,8 +242,7 @@ LT_probit <- function(formula, data, p = NULL,
                     time = time,
                     LCL =  LCL,
                     UCL =  UCL,
-                    LCL_dis = LCL_dis,
-                    UCL_dis =  UCL_dis,
+                    se = se_2,
                     chi_square = chi_square,
                     df = df,
                     pgof_sig = pgof,
@@ -239,7 +254,8 @@ LT_probit <- function(formula, data, p = NULL,
                     intercept_se = intercept_se,
                     intercept_sig = intercept_sig,
                     z = z_value,
-                    var_m = var_m)
+                    var_m = var_m,
+                    covariance = cov_b0_b1)
   }
 
   if (long_output == FALSE) {
@@ -247,9 +263,7 @@ LT_probit <- function(formula, data, p = NULL,
                     n = n,
                     time = time,
                     LCL =  LCL,
-                    UCL =  UCL,
-                    LCL_dis = LCL_dis,
-                    UCL_dis =  UCL_dis)
+                    UCL =  UCL)
   }
   return(table)
 
@@ -269,12 +283,12 @@ LT_probit <- function(formula, data, p = NULL,
 #' @param p Lethal time (LT) values for given p, example will return a LT50 value if p equals 50. If more than one LT value wanted specify by creating a vector. LT values can be calculated down to the 1e-16 of a percentage (e.g. LT99.99).However, the tibble produced can and will round to nearest whole number.
 #' @param weights vector of 'prior weights' to be used in the fitting process. Only needs to be supplied if you are taking the response / total for your response variable within the formula call of `LC_probit`. Otherwise if you use cbind(response, non-response) method you do not need to supply weights. If you do the model will be incorrect. If you don't supply weights there is a warning that will help you to make sure you are using one method or the other. See the following StackExchange post about differences [cbind() function in R for a logistic regression](https://stats.stackexchange.com/questions/259502/in-using-the-cbind-function-in-r-for-a-logistic-regression-on-a-2-times-2-t).
 #' @param subset allows for the data to be subseted if desired. Default set to `NULL`.
-#' @param log_base default is `10` and will be used to  calculate results using the anti of `log10()` given that the x variable has been `log10` tranformed. If `FALSE` results will not be back transformed.
-#' @param log_x default is `TRUE` and will calculate results using the antilog of determined by `log_base` given that the x variable has been `log()` tranformed. If `FALSE` results will not be back transformed.
-#' @param het_sig significance level from person's chi sqaure goodness-of-fit test that is used to decide if a heterogeneity factor is used. `NULL` is set to 0.15.
+#' @param log_base default is `10` and will be used to  calculate results using the anti of `log10()` given that the x variable has been `log10` transformed. If `FALSE` results will not be back transformed.
+#' @param log_x default is `TRUE` and will calculate results using the antilog of determined by `log_base` given that the x variable has been `log()` transformed. If `FALSE` results will not be back transformed.
+#' @param het_sig significance level from person's chi square goodness-of-fit test that is used to decide if a heterogeneity factor is used. `NULL` is set to 0.15.
 #' @param conf_level  Adjust confidence level as necessary or `NULL` set at 0.95.
-#' @param long_output default is `TRUE` which will return a tibble with all 19 variabless. If `FALSE` the tibble returned will consist of the p level, n, the predicted LC for given p level, lower and upper confidence limits and their distances.
-#' @return Returns a tibble with predicted LT for given p level, lower CL (LCL), upper CL (UCL), LCL and UCL distance away from LT (LCL_dis & UCL_dis; important for creating a plot), Pearson's chi sqaure goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LT variance.
+#' @param long_output default is `TRUE` which will return a tibble with all 17 variables. If `FALSE` the tibble returned will consist of the p level, n, the predicted LC for given p level, lower and upper confidence limits.
+#' @return Returns a tibble with predicted LT for given p level, lower CL (LCL), upper CL (UCL), LCL, Pearson's chi square goodness-of-fit test (pgof), slope, intercept, slope and intercept p values and standard error, and LT variance.
 #' @references
 #'
 #' Finney, D.J., 1971. Probit Analysis, Cambridge University Press, Cambridge, England, ISBN: 052108041X
@@ -383,7 +397,7 @@ LT_logit <- function(formula, data, p = NULL, weights = NULL,
 
   # covariance matrix
   if (pgof < het_sig) {
-  vcova <- vcov(model) * het
+    vcova <- vcov(model) * het
   } else {
     vcova <- vcov(model)
   }
@@ -435,7 +449,7 @@ LT_logit <- function(formula, data, p = NULL, weights = NULL,
 
   cl_part_1 <- (g / (1 - g)) * (m + (cov_b0_b1 / var_b1))
   cl_part_2 <- var_b0 + (2 * cov_b0_b1 * m) + (m ^ 2 * var_b1) -
-            (g * (var_b0 - cov_b0_b1 ^ 2 / var_b1))
+    (g * (var_b0 - cov_b0_b1 ^ 2 / var_b1))
   cl_part_3 <- (tdis / ((1 - g) * abs(b1))) * sqrt(cl_part_2)
 
   # Calculate the fiducial limit LFL=lower fiducial limit,
@@ -456,16 +470,12 @@ LT_logit <- function(formula, data, p = NULL, weights = NULL,
     time <- log_base ^ m
     LCL <- log_base ^ LCL
     UCL <- log_base ^ UCL
-    LCL_dis <- time - LCL
-    UCL_dis <- UCL - time
   }
 
   if (log_x == FALSE) {
     time <- m
     LCL <- LCL
     UCL <- UCL
-    LCL_dis <-  time - LCL
-    UCL_dis <- UCL - time
   }
 
 
@@ -476,8 +486,6 @@ LT_logit <- function(formula, data, p = NULL, weights = NULL,
                     time = time,
                     LCL = LCL,
                     UCL = UCL,
-                    LCL_dis = LCL_dis,
-                    UCL_dis = UCL_dis,
                     chi_square = chi_square,
                     df = df,
                     pgof_sig = pgof,
@@ -497,9 +505,7 @@ LT_logit <- function(formula, data, p = NULL, weights = NULL,
                     n = n,
                     time = time,
                     LCL = LCL,
-                    UCL = UCL,
-                    LCL_dis = LCL_dis,
-                    UCL_dis = UCL_dis)
+                    UCL = UCL)
   }
   return(table)
 }
